@@ -20,13 +20,14 @@ const Project = () => {
 		);
 	}
 
-	const currentIndex = currentProject.id;
+	const currentIndex = projects.findIndex(
+		(project) => project.slug === params.slug
+	);
+	const nextIndex = (currentIndex + 1) % projects.length;
+	const prevIndex = (currentIndex - 1 + projects.length) % projects.length;
 
-	const prevIndex = currentIndex > 1 ? currentIndex - 1 : projects.length;
-	const nextIndex = currentIndex < projects.length ? currentIndex + 1 : 1;
-
-	const prevProject = projects.find((project) => project.id === prevIndex);
-	const nextProject = projects.find((project) => project.id === nextIndex);
+	const nextProject = projects[nextIndex];
+	const prevProject = projects[prevIndex];
 
 	return (
 		<div className='flex flex-col items-center justify-center min-h-screen p-4 gap-4'>

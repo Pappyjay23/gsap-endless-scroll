@@ -1,13 +1,13 @@
-import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import ReactLenis from "lenis/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React, { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IoIosArrowRoundBack, IoIosArrowRoundForward } from "react-icons/io";
 
-interface Project {
+export interface Project {
 	id: number;
 	slug: string;
 	title: string;
@@ -17,8 +17,8 @@ interface Project {
 
 interface SingleProjectProps {
 	currentProject: Project;
-	prevProject?: Project;
-	nextProject?: Project;
+	prevProject: Project;
+	nextProject: Project;
 }
 
 const SingleProject = ({
@@ -27,10 +27,10 @@ const SingleProject = ({
 	nextProject,
 }: SingleProjectProps) => {
 	const isTransitioning = useRef(false);
-	const updateFooterProgress = useRef(false);
+	const [updateFooterProgress, setUpdateFooterProgress] = useState(true);
 	const router = useRouter();
 
-	useGSAP(() => {
+	useEffect(() => {
 		gsap.registerPlugin(ScrollTrigger);
 
 		const nav = document.querySelector(".nav");
@@ -87,7 +87,6 @@ const SingleProject = ({
 			pin: true,
 			pinSpacing: true,
 			onEnter: () => {
-				updateFooterProgress.current = true;
 				if (nav && !isTransitioning.current) {
 					gsap.to(nav, {
 						y: -100,
@@ -108,7 +107,7 @@ const SingleProject = ({
 				}
 			},
 			onUpdate: (self) => {
-				if (footerProgressBar && updateFooterProgress.current) {
+				if (footerProgressBar && updateFooterProgress) {
 					gsap.set(footerProgressBar, {
 						scaleX: self.progress,
 					});
@@ -116,9 +115,10 @@ const SingleProject = ({
 
 				if (self.progress >= 1 && !isTransitioning.current) {
 					isTransitioning.current = true;
-					updateFooterProgress.current = false;
+					setUpdateFooterProgress(false);
 
 					const tl = gsap.timeline();
+
 					tl.set(footerProgressBar, {
 						scaleX: 1,
 					});
@@ -133,7 +133,7 @@ const SingleProject = ({
 					);
 
 					tl.call(() => {
-						router.push(`/projects/${nextProject?.slug || ""}`);
+						router.push(`/projects/${nextProject.slug}`, { scroll: true });
 					});
 				}
 			},
@@ -142,68 +142,74 @@ const SingleProject = ({
 		return () => {
 			ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
 		};
-	}, []);
+	}, [nextProject.slug, updateFooterProgress]);
+
+	useEffect(() => {
+		window.scrollTo(0, 0);
+	}, [currentProject.slug]);
 
 	return (
-		<div className='flex flex-col items-center min-h-screen relative w-full'>
-			<nav className='nav flex items-center justify-between w-full lg:w-[70%] xl:w-[50%] mx-auto md:p-4 gap-2 md:gap-7 fixed top-5 z-10 backdrop-blur-lg rounded-full'>
-				<Link href={`/projects/${prevProject?.slug || ""}`}>
-					<button className='text-sm flex gap-2 items-center bg-white text-black py-2 px-4 rounded-lg shadow-md cursor-pointer'>
-						<IoIosArrowRoundBack />
-						<span className='hidden md:flex'>Previous</span>
-					</button>
-				</Link>
-				<div className='bg-white rounded-[5px] w-full h-[30px] relative flex overflow-hidden items-center justify-center'>
-					<div className='nav-progress-bar bg-black/30 h-full absolute left-0 top-0'></div>
-					<span className='w-full text-center text-black text-xs md:text-sm absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10'>
-						{currentProject.title}
-					</span>
-				</div>
-				<Link href={`/projects/${nextProject?.slug || ""}`}>
-					<button className='text-sm flex gap-2 items-center bg-white text-black py-2 px-4 rounded-lg shadow-md cursor-pointer'>
-						<span className='hidden md:flex'>Next</span>
-						<IoIosArrowRoundForward />
-					</button>
-				</Link>
-			</nav>
-			<section className='flex flex-col items-center justify-center min-h-screen gap-4'>
-				<p className='text-sm md:text-lg text-center opacity-0'>
-					Current Project
-				</p>
-				<h1 className='text-[40px] md:text-[7rem] font-bold text-center w-full'>
-					{currentProject.title}
-				</h1>
-				<p className='text-sm md:text-lg text-center hero-description'>
-					{currentProject.description}
-				</p>
-			</section>
-			<section className='flex flex-wrap items-center justify-center gap-4 py-[4rem]'>
-				{currentProject.images.map((image, index) => (
-					<div
-						className='h-[70vw] md:h-[40vw] w-[40vw] bg-white rounded-[8px] relative overflow-hidden'
-						key={index}>
-						<Image
-							src={image}
-							alt=''
-							key={index}
-							fill
-							className='object-cover'
-						/>
+		<ReactLenis root>
+			<div className='flex flex-col items-center min-h-screen relative w-full'>
+				<nav className='nav flex items-center justify-between w-full lg:w-[70%] xl:w-[50%] mx-auto md:p-4 gap-2 md:gap-7 fixed top-5 z-10 backdrop-blur-lg rounded-full opacity-0'>
+					<Link href={`/projects/${prevProject.slug}`}>
+						<button className='text-sm flex gap-2 items-center bg-white text-black py-2 px-4 rounded-lg shadow-md cursor-pointer'>
+							<IoIosArrowRoundBack />
+							<span className='hidden md:flex'>Previous</span>
+						</button>
+					</Link>
+					<div className='bg-white rounded-[5px] w-full h-[30px] relative flex overflow-hidden items-center justify-center'>
+						<div className='nav-progress-bar bg-black/30 h-full absolute left-0 top-0'></div>
+						<span className='w-full text-center text-black text-xs md:text-sm absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10'>
+							{currentProject.title}
+						</span>
 					</div>
-				))}
-			</section>
-			<section className='footer flex flex-col items-center justify-center min-h-screen gap-4 w-full'>
-				<p className='text-sm md:text-lg text-center footer-description'>
-					Next Project
-				</p>
-				<h1 className='text-[40px] md:text-[7rem] font-bold text-center w-full'>
-					{nextProject?.title}
-				</h1>
-				<div className='footer-progress-bar-container bg-white rounded-full w-[60%] mx-auto h-[2px] relative flex overflow-hidden items-center justify-center'>
-					<div className='footer-progress-bar bg-yellow-500 w-full h-full absolute left-1/2 top-0 -translate-x-1/2 scale-x-0 origin-center'></div>
-				</div>
-			</section>
-		</div>
+					<Link href={`/projects/${nextProject.slug}`}>
+						<button className='text-sm flex gap-2 items-center bg-white text-black py-2 px-4 rounded-lg shadow-md cursor-pointer'>
+							<span className='hidden md:flex'>Next</span>
+							<IoIosArrowRoundForward />
+						</button>
+					</Link>
+				</nav>
+				<section className='flex flex-col items-center justify-center min-h-screen gap-4'>
+					<p className='text-sm md:text-lg text-center opacity-0'>
+						Current Project
+					</p>
+					<h1 className='text-[40px] md:text-[7rem] font-bold text-center w-full'>
+						{currentProject.title}
+					</h1>
+					<p className='text-sm md:text-lg text-center hero-description opacity-0'>
+						{currentProject.description}
+					</p>
+				</section>
+				<section className='flex flex-wrap items-center justify-center gap-4 py-[4rem]'>
+					{currentProject.images.map((image, index) => (
+						<div
+							className='h-[70vw] md:h-[40vw] w-[40vw] bg-white rounded-[8px] relative overflow-hidden'
+							key={index}>
+							<Image
+								src={image}
+								alt=''
+								key={index}
+								fill
+								className='object-cover'
+							/>
+						</div>
+					))}
+				</section>
+				<section className='footer flex flex-col items-center justify-center min-h-screen gap-4 w-full'>
+					<p className='text-sm md:text-lg text-center footer-description'>
+						Next Project
+					</p>
+					<h1 className='text-[40px] md:text-[7rem] font-bold text-center w-full'>
+						{nextProject.title}
+					</h1>
+					<div className='footer-progress-bar-container bg-white rounded-full w-[60%] mx-auto h-[2px] relative flex overflow-hidden items-center justify-center'>
+						<div className='footer-progress-bar bg-yellow-500 w-full h-full absolute left-1/2 top-0 -translate-x-1/2 scale-x-0 origin-center'></div>
+					</div>
+				</section>
+			</div>
+		</ReactLenis>
 	);
 };
 
